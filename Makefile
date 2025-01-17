@@ -1,43 +1,63 @@
+# Компилятор и флаги
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra
+CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
 
-SRC_DIR = src
+# Папки
 INCLUDE_DIR = include
-TEST_DIR = tests
+SRC_DIR = src
+MAIN_DIR = main
+TESTS_DIR = tests
 BUILD_DIR = build
+BIN_DIR = $(BUILD_DIR)/bin
+LIB_DIR = $(BUILD_DIR)/lib
+OBJ_DIR = $(BUILD_DIR)/obj
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
+# Файлы
+LIB_SRC = $(SRC_DIR)/logger.cpp $(SRC_DIR)/time_utils.cpp
+LIB_OBJ = $(LIB_SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+LIB_TARGET = $(LIB_DIR)/libmylib.a
 
-TEST_SRCS = $(wildcard $(TEST_DIR)/*.cpp)
-TEST_OBJS = $(patsubst $(TEST_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(TEST_SRCS))
+MAIN_SRC = $(MAIN_DIR)/main.cpp
+MAIN_OBJ = $(OBJ_DIR)/main.o
+MAIN_TARGET = $(BIN_DIR)/myapp
 
-APP = $(BUILD_DIR)/app
-TEST_BIN = $(BUILD_DIR)/tests
+TEST_SRC = $(TESTS_DIR)/test_logger.cpp
+TEST_OBJ = $(OBJ_DIR)/test_logger.o
+TEST_TARGET = $(BIN_DIR)/test_logger
 
-.PHONY: all build test clean
+# Цели
+.PHONY: all clean build test
 
-all: build test
+all: build $(MAIN_TARGET)
 
-build: $(APP)
+build:
+	@mkdir -p $(BIN_DIR) $(LIB_DIR) $(OBJ_DIR)
 
-$(APP): $(OBJS)
-	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+# Сборка статической библиотеки
+$(LIB_TARGET): $(LIB_OBJ)
+	ar rcs $@ $^
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(BUILD_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-test: $(TEST_BIN)
-	./$(TEST_BIN)
+# Сборка приложения
+$(MAIN_TARGET): $(MAIN_OBJ) $(LIB_TARGET)
+	$(CXX) $< -o $@ -L$(LIB_DIR) -lmylib -pthread
 
-$(TEST_BIN): $(TEST_OBJS) $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-$(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
-	@mkdir -p $(BUILD_DIR)
+$(MAIN_OBJ): $(MAIN_SRC)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# Сборка тестов
+$(TEST_TARGET): $(TEST_OBJ) $(LIB_TARGET)
+	$(CXX) $^ -o $@ -L$(LIB_DIR) -lmylib -pthread
+
+$(TEST_OBJ): $(TEST_SRC)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Тесты
+test: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
+# Очистка
 clean:
-	rm -rf $(BUILD_DIR)/*
+	@rm -rf $(BUILD_DIR)
