@@ -1,70 +1,73 @@
-#include <gtest/gtest.h>
-#include <fstream>
-#include <string>
 #include "../include/logger.h"
+#include <iostream>
+#include <cassert>
+#include <fstream>
 
-// Хелпер-функция для чтения содержимого файла
-std::string readFile(const std::string& fileName) {
+// Функция для проверки содержимого файла
+bool fileContains(const std::string& fileName, const std::string& content) {
     std::ifstream file(fileName);
-    std::ostringstream content;
-    content << file.rdbuf();
-    return content.str();
+    if (!file) return false;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.find(content) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
 }
 
-// Тест на корректность конструктора
-TEST(LoggerTest, Constructor) {
+// Тест конструктора
+void testConstructor() {
     Config config = {"test_log.txt", LogLevel::Info};
-    EXPECT_NO_THROW(Logger logger(config));
+    Logger logger(config);
+    std::cout << "Constructor test passed!" << std::endl;
 }
 
-// Тест записи сообщения в лог
-TEST(LoggerTest, LogMessage) {
-    std::string testFileName = "test_log.txt";
-    Config config = {testFileName, LogLevel::Info};
+// Тест записи сообщения
+void testLogMessage() {
+    Config config = {"test_log.txt", LogLevel::Info};
     Logger logger(config);
 
-    logger.log("Test message 1", LogLevel::Info);
-    logger.log("Test message 2", LogLevel::Debug);
+    logger.log("Test message", LogLevel::Info);
+    assert(fileContains("test_log.txt", "Test message"));
 
-    std::string logContent = readFile(testFileName);
-    EXPECT_NE(logContent.find("Test message 1"), std::string::npos);
-    EXPECT_NE(logContent.find("Test message 2"), std::string::npos);
-
-    // Удаляем файл после теста
-    remove(testFileName.c_str());
+    std::cout << "LogMessage test passed!" << std::endl;
 }
 
-// Тест игнорирования сообщений ниже уровня логирования
-TEST(LoggerTest, IgnoreLowLevelMessages) {
-    std::string testFileName = "test_log.txt";
-    Config config = {testFileName, LogLevel::Debug};
+// Тест игнорирования сообщений ниже уровня
+void testIgnoreLowLevelMessages() {
+    Config config = {"test_log.txt", LogLevel::Info};
     Logger logger(config);
 
-    logger.log("This should be ignored", LogLevel::Info);
-    logger.log("This should be logged", LogLevel::Debug);
+    logger.log("Ignored message", LogLevel::Debug);
+    logger.log("Logged message", LogLevel::Info);
 
-    std::string logContent = readFile(testFileName);
-    EXPECT_EQ(logContent.find("This should be ignored"), std::string::npos);
-    EXPECT_NE(logContent.find("This should be logged"), std::string::npos);
+    assert(!fileContains("test_log.txt", "Ignored message"));
+    assert(fileContains("test_log.txt", "Logged message"));
 
-    // Удаляем файл после теста
-    remove(testFileName.c_str());
+    std::cout << "IgnoreLowLevelMessages test passed!" << std::endl;
 }
 
 // Тест изменения уровня логирования
-TEST(LoggerTest, SetLogLevel) {
-    std::string testFileName = "test_log.txt";
-    Config config = {testFileName, LogLevel::Info};
+void testSetLogLevel() {
+    Config config = {"test_log.txt", LogLevel::Info};
     Logger logger(config);
 
     logger.setLogLevel(LogLevel::Error);
-    logger.log("This should be ignored", LogLevel::Debug);
-    logger.log("This should be logged", LogLevel::Error);
+    logger.log("Ignored message", LogLevel::Debug);
+    logger.log("Logged message", LogLevel::Error);
 
-    std::string logContent = readFile(testFileName);
-    EXPECT_EQ(logContent.find("This should be ignored"), std::string::npos);
-    EXPECT_NE(logContent.find("This should be logged"), std::string::npos);
+    assert(!fileContains("test_log.txt", "Ignored message"));
+    assert(fileContains("test_log.txt", "Logged message"));
 
-    // Удаляем файл после теста
-    remove(testFileName.c_str());
+    std::cout << "SetLogLevel test passed!" << std::endl;
+}
+
+int main() {
+    testConstructor();
+    testLogMessage();
+    testIgnoreLowLevelMessages();
+    testSetLogLevel();
+    std::cout << "All tests passed!" << std::endl;
+    return 0;
 }

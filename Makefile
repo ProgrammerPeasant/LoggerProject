@@ -1,49 +1,43 @@
-TARGET = app
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra
 
 SRC_DIR = src
-BUILD_DIR = build
+INCLUDE_DIR = include
 TEST_DIR = tests
-#GTEST_DIR =
-
-CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -g
+BUILD_DIR = build
 
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
 
 TEST_SRCS = $(wildcard $(TEST_DIR)/*.cpp)
-TEST_OBJS = $(TEST_SRCS:$(TEST_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+TEST_OBJS = $(patsubst $(TEST_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(TEST_SRCS))
 
-# Подключение Google Test
-#GTEST_LIBS = -lgtest -lgtest_main -pthread
-#GTEST_FLAGS = -I$(GTEST_DIR)/include -L$(GTEST_DIR)/lib
+APP = $(BUILD_DIR)/app
+TEST_BIN = $(BUILD_DIR)/tests
 
-.PHONY: all build clean test
+.PHONY: all build test clean
 
-all: build
+all: build test
 
-build: $(BUILD_DIR)/$(TARGET)
+build: $(APP)
 
-$(BUILD_DIR)/$(TARGET): $(OBJS)
+$(APP): $(OBJS)
 	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-test: build $(BUILD_DIR)/tests
-	@echo "Running tests..."
-	$(BUILD_DIR)/tests
+test: $(TEST_BIN)
+	./$(TEST_BIN)
 
-$(BUILD_DIR)/tests: $(TEST_OBJS) $(OBJS)
-	@mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ $^ $(GTEST_LIBS)
+$(TEST_BIN): $(TEST_OBJS) $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
 $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	@echo "Cleaning build directory..."
-	@rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)/*
