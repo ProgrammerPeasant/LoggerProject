@@ -1,13 +1,13 @@
 # Компилятор и флаги
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
+CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude -fPIC
 
 # Папки
 INCLUDE_DIR = include
 SRC_DIR = src
 MAIN_DIR = main
 TESTS_DIR = tests
-BUILD_DIR = build
+BUILD_DIR = ./build
 BIN_DIR = $(BUILD_DIR)/bin
 LIB_DIR = $(BUILD_DIR)/lib
 OBJ_DIR = $(BUILD_DIR)/obj
@@ -15,15 +15,15 @@ OBJ_DIR = $(BUILD_DIR)/obj
 # Файлы
 LIB_SRC = $(SRC_DIR)/logger.cpp $(SRC_DIR)/time_utils.cpp
 LIB_OBJ = $(LIB_SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-LIB_TARGET = $(LIB_DIR)/libmylib.a
+LIB_TARGET = $(LIB_DIR)/liblogger.so
 
 MAIN_SRC = $(MAIN_DIR)/main.cpp
 MAIN_OBJ = $(OBJ_DIR)/main.o
-MAIN_TARGET = $(BIN_DIR)/myapp
+MAIN_TARGET = $(BIN_DIR)/logger
 
-TEST_SRC = $(TESTS_DIR)/test_logger.cpp
-TEST_OBJ = $(OBJ_DIR)/test_logger.o
-TEST_TARGET = $(BIN_DIR)/test_logger
+TEST_SRC = $(TESTS_DIR)/logger_tests.cpp
+TEST_OBJ = $(OBJ_DIR)/logger_tests.o
+TEST_TARGET = $(BIN_DIR)/logger_tests
 
 # Цели
 .PHONY: all clean build test
@@ -33,23 +33,23 @@ all: build $(MAIN_TARGET)
 build:
 	@mkdir -p $(BIN_DIR) $(LIB_DIR) $(OBJ_DIR)
 
-# Сборка статической библиотеки
+# Сборка динамической библиотеки
 $(LIB_TARGET): $(LIB_OBJ)
-	ar rcs $@ $^
+	$(CXX) -shared -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Сборка приложения
 $(MAIN_TARGET): $(MAIN_OBJ) $(LIB_TARGET)
-	$(CXX) $< -o $@ -L$(LIB_DIR) -lmylib -pthread
+	$(CXX) $< -o $@ -L$(LIB_DIR) -Wl,-rpath,$(LIB_DIR) -llogger -pthread
 
 $(MAIN_OBJ): $(MAIN_SRC)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Сборка тестов
 $(TEST_TARGET): $(TEST_OBJ) $(LIB_TARGET)
-	$(CXX) $^ -o $@ -L$(LIB_DIR) -lmylib -pthread
+	$(CXX) $^ -o $@ -L$(LIB_DIR) -Wl,-rpath,$(LIB_DIR) -llogger -pthread
 
 $(TEST_OBJ): $(TEST_SRC)
 	$(CXX) $(CXXFLAGS) -c $< -o $@

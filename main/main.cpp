@@ -48,11 +48,10 @@ LogLevel parseLogLevel(const std::string& input) {
     if (input == "info") return LogLevel::Info;
     if (input == "debug") return LogLevel::Debug;
     if (input == "error") return LogLevel::Error;
-    return LogLevel::Info; // Уровень по умолчанию
+    return LogLevel::Debug;
 }
 
 int main(int argc, char* argv[]) {
-    // Проверяем параметры запуска
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " <log_file> <default_log_level>" << std::endl;
         return 1;
@@ -61,14 +60,12 @@ int main(int argc, char* argv[]) {
     std::string logFileName = argv[1];
     LogLevel defaultLogLevel = parseLogLevel(argv[2]);
 
-    // Инициализация логгера
     Config config = {logFileName, defaultLogLevel};
     Logger logger(config);
 
     // Запуск потока логгера
     std::thread logThread(loggerThread, std::ref(logger));
 
-    // Цикл пользовательского ввода
     while (true) {
         std::string input;
         std::cout << "Enter message (or 'exit' to quit): ";
@@ -76,13 +73,12 @@ int main(int argc, char* argv[]) {
 
         if (input == "exit") {
             isRunning = false;
-            logQueue.push({"", LogLevel::Info}); // "Будит" поток
+            logQueue.push({"", LogLevel::Info});
             break;
         }
 
-        // Опционально считываем уровень важности
         std::string levelInput;
-        std::cout << "Enter log level (info/warning/error, default is info): ";
+        std::cout << "Enter log level (debug/info/error): ";
         std::getline(std::cin, levelInput);
 
         LogLevel level = parseLogLevel(levelInput);
